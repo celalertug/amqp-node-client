@@ -1,4 +1,4 @@
-## mocha tdd js template
+## amqp-rpc-node-client
 
 rabbitmq with management ui
 
