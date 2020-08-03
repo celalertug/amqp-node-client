@@ -2,4 +2,5 @@
 
 ### usage 
 
-`git clone https://github.com/celalertug/js-mocha-template.git`
+`yarn add amqp-node-client`
+
