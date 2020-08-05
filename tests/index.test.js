@@ -17,16 +17,19 @@ describe('lib test', async () => {
   let connection;
   let channel;
   const EXCHANGE = 'test-exchange';
+  const HOST = 'localhost';
 
   // eslint-disable-next-line no-undef
-  beforeEach(async () => {
-    connection = await amqplib.connect('amqp://localhost');
+  before(async () => {
+  // beforeEach(async () => {
+    connection = await amqplib.connect(`amqp://${HOST}`);
     channel = await connection.createChannel();
   });
 
   // eslint-disable-next-line no-undef
-  afterEach(async () => {
-    await wait(150);
+  after(async () => {
+  // afterEach(async () => {
+  //   await wait(150);
     await channel.deleteExchange(EXCHANGE);
     await channel.close();
     await connection.close();
@@ -39,7 +42,7 @@ describe('lib test', async () => {
       await channel.sendToQueue(replyTo, Buffer.from(`hi ${msg.content.toString()}`), { correlationId });
     });
 
-    const res = await rpcRequest(channel, EXCHANGE, 'math.sum', 'motherfucker');
+    const res = await rpcRequestStandAlone(HOST, EXCHANGE, 'math.sum', 'motherfucker');
     assert.deepStrictEqual(res.content.toString(), 'hi motherfucker');
   });
 
@@ -78,7 +81,7 @@ describe('lib test', async () => {
     const repeat = 50;
 
     const res = await Promise.all(range(repeat)
-      .map((i) => rpcRequest(channel, EXCHANGE, 'math.multiply', JSON.stringify({
+      .map((i) => rpcRequestStandAlone(HOST, EXCHANGE, 'math.multiply', JSON.stringify({
         a: a * i,
         b,
       }))));
@@ -89,25 +92,25 @@ describe('lib test', async () => {
 
   // eslint-disable-next-line no-undef
   it('should chaining', async () => {
-    await consume(channel, EXCHANGE, 'math.ten-times', 'math_mul', async (msg) => {
+    await consume(channel, EXCHANGE, 'chain.math.ten-times', 'chain-math-ten-times', async (msg) => {
       const { replyTo, correlationId } = msg.properties;
       const { a } = JSON.parse(msg.content.toString());
 
       await channel
         .sendToQueue(replyTo, Buffer.from(JSON.stringify({ result: a * 10 })), { correlationId });
     });
-    await consume(channel, EXCHANGE, 'math.square', 'math_sq', async (msg) => {
+    await consume(channel, EXCHANGE, 'chain.math.square', 'chain-math-square', async (msg) => {
       const { replyTo, correlationId } = msg.properties;
       const { a } = JSON.parse(msg.content.toString());
 
-      let tenTimes = await rpcRequest(channel, EXCHANGE, 'math.ten-times', JSON.stringify({ a }));
+      let tenTimes = await rpcRequestStandAlone(HOST, EXCHANGE, 'chain.math.ten-times', JSON.stringify({ a }));
       tenTimes = JSON.parse(tenTimes.content.toString()).result;
       await channel
         .sendToQueue(replyTo,
           Buffer.from(JSON.stringify({ result: tenTimes * tenTimes })), { correlationId });
     });
 
-    const res = await rpcRequest(channel, EXCHANGE, 'math.square', JSON.stringify({ a: 5 }));
+    const res = await rpcRequestStandAlone(HOST, EXCHANGE, 'chain.math.square', JSON.stringify({ a: 5 }));
     // console.log(res.content.toString());
     assert.deepStrictEqual(JSON.parse(res.content.toString()), { result: 2500 });
   });
@@ -128,7 +131,7 @@ describe('lib test', async () => {
     let worker1Count = 0;
     let worker2Count = 0;
 
-    await consume(channel, EXCHANGE, 'math.ten-times', 'math_mul', async (msg) => {
+    await consume(channel, EXCHANGE, 'worker.math.ten-times', 'worker-math-ten-times', async (msg) => {
       const { replyTo, correlationId } = msg.properties;
       const { a } = JSON.parse(msg.content.toString());
       // console.log('worker1', a);
@@ -139,7 +142,7 @@ describe('lib test', async () => {
       await channel
         .sendToQueue(replyTo, Buffer.from(JSON.stringify({ result: a * 10 })), { correlationId });
     });
-    await consume(channel, EXCHANGE, 'math.ten-times', 'math_mul', async (msg) => {
+    await consume(channel, EXCHANGE, 'worker.math.ten-times', 'worker-math-ten-times', async (msg) => {
       const { replyTo, correlationId } = msg.properties;
       const { a } = JSON.parse(msg.content.toString());
       // console.log('worker2', a);
@@ -151,7 +154,7 @@ describe('lib test', async () => {
     });
 
     const res = await Promise.all(range(10)
-      .map((i) => rpcRequest(channel, EXCHANGE, 'math.ten-times', JSON.stringify({
+      .map((i) => rpcRequestStandAlone(HOST, EXCHANGE, 'worker.math.ten-times', JSON.stringify({
         a: i + 1,
       }))));
 
