@@ -22,7 +22,7 @@ note : service won't work without rabbitmq
 simple rpc usage example
 
 ```js
-const { ServiceCreator } = require('../index.js');
+const { ServiceCreator } = require('amqp-rpc-node-client');
 
 (async () => {
   const service = await ServiceCreator('localhost', 'hebele-hubele-exchange');
