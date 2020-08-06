@@ -11,14 +11,19 @@ describe('service', () => {
     await service.consume('request.echo', 'worker-queue', async (msg) => {
       const { replyTo, correlationId } = msg.properties;
 
+      const res = service.responseBuilder(200, true, 'ok', JSON.parse(msg.content.toString()));
       if (replyTo) {
-        await service.sendToQueue(replyTo, msg.content.toString(), { correlationId });
+        await service.sendToQueue(replyTo, JSON.stringify(res), { correlationId });
       }
     });
 
-    const res = await service.rpcRequest('request.echo', 'surprise motherfucker');
-    assert.deepStrictEqual(res.content.toString(), 'surprise motherfucker');
-    // console.log(res.content.toString());
+    const res = await service.rpcRequest('request.echo', JSON.stringify({ message: 'surprise motherfucker' }));
+    assert.deepStrictEqual(JSON.parse(res.content.toString()), {
+      code: 200,
+      success: true,
+      message: 'ok',
+      data: { message: 'surprise motherfucker' },
+    });
 
     await service.purgeAndClose();
     // await service.close();
