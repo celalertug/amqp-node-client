@@ -175,4 +175,37 @@ describe('lib test', async () => {
       { result: 100 },
     ]);
   });
+
+  // eslint-disable-next-line no-undef
+  it('should response', async () => {
+    const response = (code = 200, success = true, message = '', data = {}) => ({
+      code, success, message, data,
+    });
+
+    let res = response();
+    // console.log(res);
+    assert.deepStrictEqual(res, {
+      code: 200, success: true, message: '', data: {},
+    });
+
+    res = response(404, false, 'authentication failed');
+    // console.log(res);
+    assert.deepStrictEqual(res, {
+      code: 404,
+      success: false,
+      message: 'authentication failed',
+      data: {},
+    });
+
+    res = response(203, true, 'item created', { value: 123 });
+    // console.log(res);
+    assert.deepStrictEqual(res, {
+      code: 203,
+      success: true,
+      message: 'item created',
+      data: { value: 123 },
+    });
+
+
+  });
 });
