@@ -8,9 +8,10 @@ const { ServiceCreator } = require('../index.js');
     const { replyTo, correlationId } = msg.properties;
 
     const { value } = JSON.parse(msg.content.toString());
+    const res = service.responseBuilder(200, true, '', { value: value + 10 });
 
     if (replyTo) {
-      await service.sendToQueue(replyTo, JSON.stringify({ value: value + 10 }), { correlationId });
+      await service.sendToQueue(replyTo, JSON.stringify(res), { correlationId });
     }
   });
 
@@ -20,10 +21,12 @@ const { ServiceCreator } = require('../index.js');
 
     const { value } = JSON.parse(msg.content.toString());
 
-    const res = await service.rpcRequest('request.add-ten', JSON.stringify({ value: value * 2 }));
+    let res = await service.rpcRequest('request.add-ten', JSON.stringify({ value }));
+    const responseOfAddTen = JSON.parse(res.content.toString()).data.value;
+    res = service.responseBuilder(200, true, '', { value: responseOfAddTen * 2 });
 
     if (replyTo) {
-      await service.sendToQueue(replyTo, res.content.toString(), { correlationId });
+      await service.sendToQueue(replyTo, JSON.stringify(res), { correlationId });
     }
   });
 

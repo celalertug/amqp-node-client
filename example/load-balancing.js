@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const { range } = require('lodash');
 const { ServiceCreator } = require('../index.js');
 
@@ -14,9 +15,11 @@ const wait = (ms) => new Promise((resolve) => {
     const { replyTo, correlationId } = msg.properties;
 
     const { value } = JSON.parse(msg.content.toString());
+    const res = service.responseBuilder(200, true, 'completed by worker1', { value });
+
     await wait(250);
     if (replyTo) {
-      await service.sendToQueue(replyTo, JSON.stringify({ value, completedBy: 'worker1' }), { correlationId });
+      await service.sendToQueue(replyTo, JSON.stringify(res), { correlationId });
     }
   });
 
@@ -24,10 +27,11 @@ const wait = (ms) => new Promise((resolve) => {
     const { replyTo, correlationId } = msg.properties;
 
     const { value } = JSON.parse(msg.content.toString());
-    await wait(750);
+    const res = service.responseBuilder(200, true, 'completed by worker2', { value });
 
+    await wait(750);
     if (replyTo) {
-      await service.sendToQueue(replyTo, JSON.stringify({ value, completedBy: 'worker2' }), { correlationId });
+      await service.sendToQueue(replyTo, JSON.stringify(res), { correlationId });
     }
   });
 
