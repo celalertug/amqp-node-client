@@ -164,6 +164,10 @@ const sendToQueue = async (channel, queue, msgStr, options) => {
   await channel.sendToQueue(queue, Buffer.from(msgStr), options);
 };
 
+const responseBuilder = (code = 200, success = true, message = '', data = {}) => ({
+  code, success, message, data,
+});
+
 const ServiceCreator = async (host, exchange) => {
   const connection = await connect(host);
   const channel = await createChannel(connection);
@@ -171,6 +175,7 @@ const ServiceCreator = async (host, exchange) => {
   return {
     connection,
     channel,
+    responseBuilder,
     consume: (topic, queue, cb = () => {}) => consume(channel, exchange, topic, queue, cb),
     rpcRequest: (topic, msgStr, timeout = 0) => rpcRequestStandAlone(
       host, exchange, topic, msgStr, timeout,
@@ -198,5 +203,6 @@ module.exports = {
   rpcRequestStandAlone,
   fireAndForget,
   fireAndForgetStandAlone,
+  responseBuilder,
   ServiceCreator,
 };
