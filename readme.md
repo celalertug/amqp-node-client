@@ -45,4 +45,27 @@ const { ServiceCreator } = require('amqp-rpc-node-client');
 })();
 ```
 
+simple consumer example
+
+```js
+const assert = require('assert');
+const { ServiceCreator } = require('amqp-rpc-node-client');
+
+(async () => {
+  const service = await ServiceCreator('localhost', 'hebele-hubele-exchange');
+
+  await service.simpleConsume('simple.math.square', 'simple-math-square', async (msg) => {
+    const { value } = JSON.parse(msg);
+    return JSON.stringify({ result: value * value });
+  });
+
+  let res = await service.rpcRequest('simple.math.square', JSON.stringify({ value: 2 }));
+  res = JSON.parse(res.content.toString());
+  console.log(res);
+  assert.deepStrictEqual(res, { result: 4 });
+
+  await service.close();
+})();
+```
+
 go example directory for further examples
