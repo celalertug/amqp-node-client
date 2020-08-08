@@ -2,6 +2,13 @@ const assert = require('assert');
 
 const amq = require('../index.js');
 
+// eslint-disable-next-line no-unused-vars
+const wait = (ms) => new Promise((resolve) => {
+  setTimeout(() => {
+    resolve();
+  }, ms);
+}, ms);
+
 // eslint-disable-next-line no-undef
 describe('service', () => {
   // eslint-disable-next-line no-undef
