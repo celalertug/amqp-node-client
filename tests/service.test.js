@@ -28,4 +28,18 @@ describe('service', () => {
     await service.purgeAndClose();
     // await service.close();
   });
+
+  // eslint-disable-next-line no-undef
+  it('should simple consume', async () => {
+    const s = await amq.ServiceCreator('localhost', 'hebele');
+
+    await s.simpleConsume('wow', '', async (msg) => msg);
+
+    let res = await s.rpcRequest('wow', JSON.stringify({ value: 123 }));
+    res = JSON.parse(res.content.toString());
+    // console.log('receive', res);
+    assert.deepStrictEqual(res, { value: 123 });
+
+    await s.purgeAndClose();
+  });
 });

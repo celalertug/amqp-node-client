@@ -3,6 +3,10 @@ const amqplib = require('amqplib');
 
 // const wait = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
 
+const responseBuilder = (code = 200, success = true, message = '', data = {}) => ({
+  code, success, message, data,
+});
+
 const connect = async (host) => {
   const conn = await amqplib.connect(`amqp://${host}`);
   conn.on('close', () => {
@@ -26,8 +30,14 @@ const createChannel = async (connection) => {
   return channel;
 };
 
+const sendToQueue = async (channel, queue, msgStr, options) => {
+  await channel.sendToQueue(queue, Buffer.from(msgStr), options);
+};
+
 const consume = async (channel, exchange, topic, queue = '', cb = async () => {
-}) => {
+}, options) => {
+  const prefetchCount = options?.prefetchCount || 100;
+
   const q = await channel.assertQueue(queue, {
     autoDelete: true,
     durable: true,
@@ -35,8 +45,7 @@ const consume = async (channel, exchange, topic, queue = '', cb = async () => {
   const e = await channel.assertExchange(exchange, 'topic');
 
   await channel.bindQueue(queue, exchange, topic);
-
-  await channel.prefetch(1);
+  await channel.prefetch(prefetchCount);
   await channel.consume(queue, async (msg) => {
     await cb(msg, channel);
     await channel.ack(msg);
@@ -48,51 +57,15 @@ const consume = async (channel, exchange, topic, queue = '', cb = async () => {
   };
 };
 
-// const rpcRequest = async (host, exchange, topic, msgStr, timeout = 0) => {
-//   let connection;
-//   let channel;
-//   try {
-//     connection = await amqplib.connect(`amqp://${host}`);
-//     channel = await connection.createChannel();
-//   } catch (err) {
-//     return null;
-//   }
-//   const q = await channel.assertQueue('', {
-//     autoDelete: true,
-//     exclusive: true,
-//     durable: true,
-//   });
-//
-//   const correlationId = v4();
-//
-//   const ret = new Promise((resolve, reject) => {
-//     if (timeout > 0) {
-//       setTimeout(async () => {
-//         // console.log('rejected');
-//         await channel.close();
-//         await connection.close();
-//         reject(new Error('timeout'));
-//       }, timeout);
-//     }
-//     channel.consume(q.queue, async (msg) => {
-//       if (msg.properties.correlationId === correlationId) {
-//         await channel.ack(msg);
-//         await channel.close();
-//         await connection.close();
-//         resolve(msg);
-//       }
-//     }, {
-//       noAck: false,
-//     });
-//   });
-//
-//   await channel.publish(exchange, topic, Buffer.from(msgStr),
-//     {
-//       replyTo: q.queue, correlationId, persisted: true, mandatory: false,
-//     });
-//
-//   return ret;
-// };
+const simpleConsume = async (channel, exchange, topic, queue = '', cb = async () => {
+}, options) => consume(channel, exchange, topic, queue, async (msg) => {
+  const { replyTo, correlationId } = msg.properties;
+  const res = await cb(msg.content.toString(), channel);
+
+  if (replyTo) {
+    await sendToQueue(channel, replyTo, res, { correlationId });
+  }
+}, options);
 
 const rpcRequestStandAlone = async (host, exchange, topic, msgStr, timeout = 0) => {
   let connection;
@@ -160,14 +133,6 @@ const fireAndForgetStandAlone = async (host, exchange, topic, msgStr) => {
   return true;
 };
 
-const sendToQueue = async (channel, queue, msgStr, options) => {
-  await channel.sendToQueue(queue, Buffer.from(msgStr), options);
-};
-
-const responseBuilder = (code = 200, success = true, message = '', data = {}) => ({
-  code, success, message, data,
-});
-
 const ServiceCreator = async (host, exchange) => {
   const connection = await connect(host);
   const channel = await createChannel(connection);
@@ -176,7 +141,12 @@ const ServiceCreator = async (host, exchange) => {
     connection,
     channel,
     responseBuilder,
-    consume: (topic, queue, cb = () => {}) => consume(channel, exchange, topic, queue, cb),
+    consume: (topic, queue, cb = () => {}, options) => consume(
+      channel, exchange, topic, queue, cb, options,
+    ),
+    simpleConsume: (topic, queue, cb = () => {}, options) => simpleConsume(
+      channel, exchange, topic, queue, cb, options,
+    ),
     rpcRequest: (topic, msgStr, timeout = 0) => rpcRequestStandAlone(
       host, exchange, topic, msgStr, timeout,
     ),
@@ -200,6 +170,7 @@ module.exports = {
   connect,
   createChannel,
   consume,
+  simpleConsume,
   rpcRequestStandAlone,
   fireAndForget,
   fireAndForgetStandAlone,

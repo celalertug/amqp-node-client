@@ -3,7 +3,7 @@ const amqplib = require('amqplib');
 const { range } = require('lodash');
 
 const {
-  consume, fireAndForget, rpcRequest, rpcRequestStandAlone,
+  consume, fireAndForget, rpcRequestStandAlone,
 } = require('../index.js');
 
 const wait = (ms) => new Promise((resolve) => {
@@ -205,7 +205,5 @@ describe('lib test', async () => {
       message: 'item created',
       data: { value: 123 },
     });
-
-
   });
 });
