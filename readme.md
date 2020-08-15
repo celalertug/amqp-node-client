@@ -41,6 +41,19 @@ const { ServiceCreator } = require('amqp-rpc-node-client');
     console.log(JSON.parse(res.content.toString()));
   }, 1000);
 
+  // with reply-to and correlation-id
+  setInterval(async () => {
+    await service.rpcRequest(
+      'request.echo',
+      JSON.stringify(
+        { value: `surprise ${Date()}` },
+      ), 0, ({ replyTo, correlationId }) => {
+        console.log('replyTo', replyTo); // replyTo amq.gen-G9lrsEB013fEBOuLgy1hiQ
+        console.log('correlationId', correlationId); // correlationId 532de226-ace3-4ead-b859-a314699d45a5
+      },
+    );
+  }, 1000);
+
   // await service.purgeAndClose();
 })();
 ```

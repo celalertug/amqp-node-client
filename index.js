@@ -4,7 +4,10 @@ const amqplib = require('amqplib');
 // const wait = (ms) => new Promise((resolve) => setTimeout(() => resolve(), ms));
 
 const responseBuilder = (code = 200, success = true, message = '', data = {}) => ({
-  code, success, message, data,
+  code,
+  success,
+  message,
+  data,
 });
 
 const connect = async (host) => {
@@ -67,7 +70,9 @@ const simpleConsume = async (channel, exchange, topic, queue = '', cb = async ()
   }
 }, options);
 
-const rpcRequestStandAlone = async (host, exchange, topic, msgStr, timeout = 0) => {
+const rpcRequestStandAlone = async (
+  host, exchange, topic, msgStr, timeout = 0, responseInfo = () => {
+  }) => {
   let connection;
   let channel;
   try {
@@ -84,6 +89,10 @@ const rpcRequestStandAlone = async (host, exchange, topic, msgStr, timeout = 0) 
   });
 
   const correlationId = v4();
+  responseInfo({
+    replyTo: q.queue,
+    correlationId,
+  });
 
   const ret = new Promise((resolve, reject) => {
     if (timeout > 0) {
@@ -108,7 +117,10 @@ const rpcRequestStandAlone = async (host, exchange, topic, msgStr, timeout = 0) 
 
   await channel.publish(exchange, topic, Buffer.from(msgStr),
     {
-      replyTo: q.queue, correlationId, persisted: true, mandatory: false,
+      replyTo: q.queue,
+      correlationId,
+      persisted: true,
+      mandatory: false,
     });
 
   return ret;
@@ -141,14 +153,17 @@ const ServiceCreator = async (host, exchange) => {
     connection,
     channel,
     responseBuilder,
-    consume: (topic, queue, cb = () => {}, options) => consume(
+    consume: (topic, queue, cb = () => {
+    }, options) => consume(
       channel, exchange, topic, queue, cb, options,
     ),
-    simpleConsume: (topic, queue, cb = () => {}, options) => simpleConsume(
+    simpleConsume: (topic, queue, cb = () => {
+    }, options) => simpleConsume(
       channel, exchange, topic, queue, cb, options,
     ),
-    rpcRequest: (topic, msgStr, timeout = 0) => rpcRequestStandAlone(
-      host, exchange, topic, msgStr, timeout,
+    rpcRequest: (topic, msgStr, timeout = 0, responseInfo = () => {
+    }) => rpcRequestStandAlone(
+      host, exchange, topic, msgStr, timeout, responseInfo,
     ),
     sendToQueue: (queue, msgStr, options) => sendToQueue(channel, queue, msgStr, options),
     fireAndForget: (topic, msgStr) => fireAndForget(channel, exchange, topic, msgStr),

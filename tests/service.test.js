@@ -49,4 +49,17 @@ describe('service', () => {
 
     await s.purgeAndClose();
   });
+
+  // eslint-disable-next-line no-undef
+  it('should rpc request with response info', async () => {
+    const s = await amq.ServiceCreator('localhost', 'hebele');
+
+    await s.simpleConsume('wow', '', async (msg) => msg);
+
+    await s.rpcRequest('wow', JSON.stringify({ value: 123 }), 0, ({ replyTo, correlationId }) => {
+      assert.deepStrictEqual(!!replyTo, true);
+      assert.deepStrictEqual(!!correlationId, true);
+    });
+    await s.purgeAndClose();
+  });
 });
