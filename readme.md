@@ -17,7 +17,7 @@ note : service won't work without rabbitmq
 ### usage 
 
 
-`yarn add amqp-node-client`
+`yarn add amqp-rpc-node-client`
 
 simple rpc usage example
 
