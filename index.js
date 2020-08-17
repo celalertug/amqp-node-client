@@ -63,7 +63,7 @@ const consume = async (channel, exchange, topic, queue = '', cb = async () => {
 const simpleConsume = async (channel, exchange, topic, queue = '', cb = async () => {
 }, options) => consume(channel, exchange, topic, queue, async (msg) => {
   const { replyTo, correlationId } = msg.properties;
-  const res = await cb(msg.content.toString(), channel);
+  const res = await cb(msg.content.toString(), channel, msg.properties);
 
   if (replyTo) {
     await sendToQueue(channel, replyTo, res, { correlationId });

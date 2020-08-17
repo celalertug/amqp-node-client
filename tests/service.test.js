@@ -62,4 +62,23 @@ describe('service', () => {
     });
     await s.purgeAndClose();
   });
+
+  // eslint-disable-next-line no-undef
+  it('should rpc request with header', async () => {
+    const s = await amq.ServiceCreator('localhost', 'hebele');
+
+    await s.simpleConsume('wow', '', async (msg, ch, prop) => {
+      // console.log(prop);
+      assert.deepStrictEqual(!!prop.correlationId, true);
+      assert.deepStrictEqual(!!prop.replyTo, true);
+
+      return msg;
+    });
+
+    await s.rpcRequest('wow', JSON.stringify({ value: 123 }), 0, ({ replyTo, correlationId }) => {
+      // assert.deepStrictEqual(!!replyTo, true);
+      // assert.deepStrictEqual(!!correlationId, true);
+    });
+    await s.purgeAndClose();
+  });
 });
