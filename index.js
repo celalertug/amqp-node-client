@@ -10,8 +10,8 @@ const responseBuilder = (code = 200, success = true, message = '', data = {}) =>
   data,
 });
 
-const connect = async (host) => {
-  const conn = await amqplib.connect(`amqp://${host}`);
+const connect = async (host, heartbeat = false) => {
+  const conn = await amqplib.connect(`amqp://${host}${heartbeat ? '?heartbeat=60' : ''}`);
   conn.on('close', () => {
     process.exit(0);
   });
