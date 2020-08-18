@@ -94,9 +94,10 @@ const rpcRequestStandAlone = async (
     correlationId,
   });
 
+  let timeoutHandler = null;
   const ret = new Promise((resolve, reject) => {
     if (timeout > 0) {
-      setTimeout(async () => {
+      timeoutHandler = setTimeout(async () => {
         // console.log('rejected');
         await channel.close();
         await connection.close();
@@ -105,6 +106,9 @@ const rpcRequestStandAlone = async (
     }
     channel.consume(q.queue, async (msg) => {
       if (msg.properties.correlationId === correlationId) {
+        if (timeoutHandler !== null) {
+          clearTimeout(timeoutHandler);
+        }
         await channel.ack(msg);
         await channel.close();
         await connection.close();
